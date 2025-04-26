@@ -6,16 +6,20 @@
  */
 
 import React from 'react';
-import type {PropsWithChildren} from 'react';
 
 import WordListScreen from './src/screens/MatchWord';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 // type SectionProps = PropsWithChildren<{
 //   title: string;
 // }>;
 
 function App(): React.JSX.Element {
-  return <WordListScreen />;
+  return (
+    <SafeAreaProvider>
+      <WordListScreen />
+    </SafeAreaProvider>
+  );
 }
 
 export default App;

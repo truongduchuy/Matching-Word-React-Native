@@ -1,27 +1,39 @@
-// ArrowLine.tsx
 import React from 'react';
-import Svg, { Line, Defs, Marker, Path } from 'react-native-svg';
-import { View } from 'react-native';
+import {Dimensions, View} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import Svg, {Line, Defs, Marker, Path} from 'react-native-svg';
 
 type ArrowLineProps = {
-  from: { x: number; y: number };
-  to: { x: number; y: number };
+  from: {x: number; y: number};
+  to: {x: number; y: number};
   color?: string;
   strokeWidth?: number;
 };
 
+const {width: screenWidth, height: screenHeight} = Dimensions.get('window');
 const ArrowLine: React.FC<ArrowLineProps> = ({
   from,
   to,
   color = 'red',
   strokeWidth = 2,
 }) => {
-  const width = Math.max(from.x, to.x) + 20;
-  const height = Math.max(from.y, to.y) + 20;
+  const insets = useSafeAreaInsets();
+  console.log({insets});
 
   return (
-    <View style={{ position: 'absolute', left: 0, top: 0 }}>
-      <Svg height={height} width={width}>
+    <View
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: screenWidth,
+        height: screenHeight,
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+        paddingLeft: insets.left,
+        paddingRight: insets.right,
+      }}>
+      <Svg width="100%" height="100%">
         <Defs>
           <Marker
             id="arrowhead"
@@ -30,8 +42,7 @@ const ArrowLine: React.FC<ArrowLineProps> = ({
             refX="5"
             refY="3"
             orient="auto"
-            markerUnits="strokeWidth"
-          >
+            markerUnits="strokeWidth">
             <Path d="M0,0 L0,6 L6,3 z" fill={color} />
           </Marker>
         </Defs>
