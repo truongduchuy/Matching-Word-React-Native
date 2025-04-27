@@ -1,12 +1,7 @@
 import React, {useMemo, useRef, useState} from 'react';
 import {View, Text, ScrollView, TouchableOpacity} from 'react-native';
 import ArrowLine from '../components/Arrow';
-import {
-  randomizedEnglishWords,
-  randomizedFrenchWords,
-  WORD_LIST,
-  WORD_LIST_MAP,
-} from '../constants';
+import {shuffleArray, WORD_LIST, WORD_LIST_MAP} from '../constants';
 import {Line, Point} from '../types';
 import {styles} from '../styles/MatchWord';
 import WordItem from '../components/WordItem';
@@ -25,8 +20,11 @@ const WordListScreen: React.FC = () => {
   const frenchWordRefs = useRef<Array<View | null>>([]);
   const [lines, setLines] = useState([] as Line[]);
   const [showReset, setShowReset] = useState(false);
+  const [randomizedWords, setRandomizedWords] = useState({
+    english: shuffleArray(WORD_LIST.map(w => w.english)),
+    french: shuffleArray(WORD_LIST.map(w => w.french)),
+  });
   const handleEnglishWordPress = (index: number, word: string) => {
-    console.log({index, word});
     const ref = englishWordRefs.current[index];
     if (ref) {
       ref.measureInWindow((x, y, width, height) => {
@@ -101,6 +99,10 @@ const WordListScreen: React.FC = () => {
     setLines([]);
     setSelectedEnglishWord(initSelectedEnglishWord);
     setShowReset(false);
+    setRandomizedWords({
+      english: shuffleArray(WORD_LIST.map(w => w.english)),
+      french: shuffleArray(WORD_LIST.map(w => w.french)),
+    });
   };
 
   const setEnglishWordRef = (index: number) => (ref: View | null) => {
@@ -127,7 +129,7 @@ const WordListScreen: React.FC = () => {
           <View style={styles.titleBoxEnglish}>
             <Text style={styles.titleText}>English Word</Text>
           </View>
-          {randomizedEnglishWords.map((word, index) => (
+          {randomizedWords.english.map((word, index) => (
             <WordItem
               key={word}
               word={word}
@@ -154,7 +156,7 @@ const WordListScreen: React.FC = () => {
           <View style={styles.titleBoxFrench}>
             <Text style={styles.titleText}>French Word</Text>
           </View>
-          {randomizedFrenchWords.map((word, index) => (
+          {randomizedWords.french.map((word, index) => (
             <WordItem
               key={word}
               word={word}
