@@ -150,7 +150,7 @@ const WordListScreen: React.FC = () => {
           <Text
             style={
               styles.gradeText
-            }>{`Total correct: ${gradePercentage}%`}</Text>
+            }>{`Correct Answers: ${gradePercentage}%`}</Text>
         )}
         <View style={[styles.columnContainer, styles.frenchBox]}>
           <View style={styles.titleBoxFrench}>
