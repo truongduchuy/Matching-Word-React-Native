@@ -1,65 +1,30 @@
-import React, {useRef, useState} from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  // GestureResponderEvent,
-  // findNodeHandle,
-  // UIManager,
-} from 'react-native';
+import React, {useMemo, useRef, useState} from 'react';
+import {View, Text, ScrollView, TouchableOpacity} from 'react-native';
 import ArrowLine from '../components/Arrow';
+import {
+  randomizedEnglishWords,
+  randomizedFrenchWords,
+  WORD_LIST,
+  WORD_LIST_MAP,
+} from '../constants';
+import {Line, Point} from '../types';
+import {styles} from '../styles/MatchWord';
+import WordItem from '../components/WordItem';
+import {randomBoldColor} from '../utils';
 
-const englishWords: string[] = [
-  'bicycle',
-  'railroad',
-  'folder',
-  'butter',
-  'cereal',
-  'hungry',
-  'forest',
-  'camel',
-  'weekly',
-  'desk',
-  'sibling',
-  'limestone',
-];
-
-const frenchWords: string[] = [
-  'chameau',
-  'chemin de fer',
-  'frère et soeur',
-  'hebdomadaire',
-  'vélo',
-  'beurre',
-  'dossier',
-  'forêt',
-  'calcaire',
-  'bureau',
-  'céréale',
-  'faim',
-];
-
-type Point = {
-  x: number;
-  y: number;
+const initSelectedEnglishWord = {
+  word: '',
+  point: {} as Point,
 };
 
-type Line = {
-  from: Point;
-  to: Point;
-  fromWord: string;
-  toWord: string;
-};
 const WordListScreen: React.FC = () => {
-  const [selectedEnglishWord, setSelectedEnglishWord] = useState({
-    word: '',
-    point: {} as Point,
-  });
-  const englishWordRefs = useRef<(View | null)[]>([]);
-  const frenchWordRefs = useRef<(View | null)[]>([]);
+  const [selectedEnglishWord, setSelectedEnglishWord] = useState(
+    initSelectedEnglishWord,
+  );
+  const englishWordRefs = useRef<Array<View | null>>([]);
+  const frenchWordRefs = useRef<Array<View | null>>([]);
   const [lines, setLines] = useState([] as Line[]);
+  const [showReset, setShowReset] = useState(false);
   const handleEnglishWordPress = (index: number, word: string) => {
     console.log({index, word});
     const ref = englishWordRefs.current[index];
@@ -78,15 +43,6 @@ const WordListScreen: React.FC = () => {
       return;
     }
 
-    const selectAnExistedAnswer = lines.some(
-      line =>
-        line.fromWord === selectedEnglishWord.word || line.toWord === word,
-    );
-
-    if (selectAnExistedAnswer) {
-      return;
-    }
-
     const existedPair = lines.some(
       line =>
         line.fromWord === selectedEnglishWord.word && line.toWord === word,
@@ -99,31 +55,60 @@ const WordListScreen: React.FC = () => {
             line.fromWord !== selectedEnglishWord.word && line.toWord !== word,
         ),
       );
-    } else {
-      const ref = frenchWordRefs.current[index];
-      if (ref) {
-        ref.measureInWindow((x, y, width, height) => {
-          const rightX = x;
-          const centerY = y - height / 2;
 
-          const frenchPoint = {x: rightX, y: centerY};
-          const newLine = {
-            from: selectedEnglishWord.point,
-            to: frenchPoint,
-            fromWord: selectedEnglishWord.word,
-            toWord: word,
-          };
-          setLines(prevLines => [...prevLines, newLine]);
-        });
-      }
+      return setSelectedEnglishWord(initSelectedEnglishWord);
     }
-    setSelectedEnglishWord({word: '', point: {} as Point});
+
+    const selectAnExistedAnswer = lines.some(line => line.toWord === word);
+
+    if (selectAnExistedAnswer) {
+      return;
+    }
+
+    const ref = frenchWordRefs.current[index];
+    if (ref) {
+      ref.measureInWindow((x, y, width, height) => {
+        const rightX = x;
+        const centerY = y - height / 2;
+
+        const frenchPoint = {x: rightX, y: centerY};
+        const newLine = {
+          from: selectedEnglishWord.point,
+          to: frenchPoint,
+          fromWord: selectedEnglishWord.word,
+          toWord: word,
+          color: randomBoldColor(),
+        };
+        setLines(prevLines => [...prevLines, newLine]);
+      });
+    }
+    setSelectedEnglishWord(initSelectedEnglishWord);
   };
 
-  const getBackgroundColor = (word: string, index: number) => {
-    if (selectedEnglishWord.word === word) return '#86aad8'; // selected
-    if (index % 2 !== 0) return 'white'; // odd row
-    return '#e6f0fa'; // even row
+  const handleGrade = () => {
+    setShowReset(true);
+  };
+
+  const gradePercentage = useMemo(() => {
+    const countCorrectPair = lines.filter(line => {
+      return WORD_LIST_MAP[line.fromWord] === line.toWord;
+    }).length;
+
+    return Math.round((countCorrectPair / WORD_LIST.length) * 100);
+  }, [lines]);
+
+  const handleReset = () => {
+    setLines([]);
+    setSelectedEnglishWord(initSelectedEnglishWord);
+    setShowReset(false);
+  };
+
+  const setEnglishWordRef = (index: number) => (ref: View | null) => {
+    englishWordRefs.current[index] = ref;
+  };
+
+  const setFrenchWordRef = (index: number) => (ref: View | null) => {
+    frenchWordRefs.current[index] = ref;
   };
 
   return (
@@ -134,7 +119,7 @@ const WordListScreen: React.FC = () => {
             key={index}
             from={{x: line.from.x, y: line.from.y}}
             to={{x: line.to.x, y: line.to.y}}
-            color="red"
+            color={line.color}
             strokeWidth={2}
           />
         ))}
@@ -142,102 +127,48 @@ const WordListScreen: React.FC = () => {
           <View style={styles.titleBoxEnglish}>
             <Text style={styles.titleText}>English Word</Text>
           </View>
-          {englishWords.map((word, index) => (
-            <TouchableOpacity
-              onPress={() => handleEnglishWordPress(index, word)}
-              ref={ref => {
-                englishWordRefs.current[index] = ref;
-              }}
-              style={{
-                ...styles.wordBoxEnglish,
-                backgroundColor: getBackgroundColor(word, index),
-              }}
-              key={word}>
-              <Text style={styles.wordText}>{word}</Text>
-            </TouchableOpacity>
+          {randomizedEnglishWords.map((word, index) => (
+            <WordItem
+              key={word}
+              word={word}
+              index={index}
+              isSelected={selectedEnglishWord.word === word}
+              onPress={handleEnglishWordPress}
+              ref={setEnglishWordRef(index)}
+            />
           ))}
         </View>
         <View style={{width: 60}} />
+        <TouchableOpacity
+          style={styles.button}
+          onPress={showReset ? handleReset : handleGrade}>
+          <Text style={styles.buttonText}>{showReset ? 'GO!' : 'GRADE'}</Text>
+        </TouchableOpacity>
+        {showReset && (
+          <Text
+            style={
+              styles.gradeText
+            }>{`Total correct: ${gradePercentage}%`}</Text>
+        )}
         <View style={[styles.columnContainer, styles.frenchBox]}>
           <View style={styles.titleBoxFrench}>
             <Text style={styles.titleText}>French Word</Text>
           </View>
-          {frenchWords.map((word, index) => (
-            <TouchableOpacity
-              onPress={() => handleFrenchWordPress(index, word)}
-              ref={ref => {
-                frenchWordRefs.current[index] = ref;
-              }}
+          {randomizedFrenchWords.map((word, index) => (
+            <WordItem
               key={word}
-              style={{
-                ...styles.wordBoxFrench,
-                backgroundColor: index % 2 !== 0 ? 'white' : '#e8f5e9',
-              }}>
-              <Text style={styles.wordText}>{word}</Text>
-            </TouchableOpacity>
+              word={word}
+              index={index}
+              isSelected={false}
+              isFrench
+              onPress={handleFrenchWordPress}
+              ref={setFrenchWordRef(index)}
+            />
           ))}
         </View>
       </ScrollView>
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    flexDirection: 'row',
-    padding: 20,
-    justifyContent: 'space-between',
-    backgroundColor: '#ffffff',
-    marginTop: 40,
-  },
-  columnContainer: {
-    width: 128,
-    alignItems: 'center',
-  },
-  titleBoxEnglish: {
-    backgroundColor: '#337ab7',
-    paddingVertical: 10,
-    width: '100%',
-    alignItems: 'center',
-    borderTopLeftRadius: 5,
-    borderTopRightRadius: 5,
-  },
-  titleBoxFrench: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 10,
-    width: '100%',
-    alignItems: 'center',
-    borderTopLeftRadius: 5,
-    borderTopRightRadius: 5,
-  },
-  titleText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  wordBoxEnglish: {
-    borderColor: '#337ab7',
-    borderWidth: 1,
-    paddingVertical: 8,
-    width: '100%',
-    alignItems: 'center',
-    marginVertical: 1,
-  },
-  wordBoxFrench: {
-    borderColor: '#4CAF50',
-    borderWidth: 1,
-    paddingVertical: 8,
-    width: '100%',
-    alignItems: 'center',
-    marginVertical: 1,
-  },
-  wordText: {
-    fontSize: 14,
-  },
-  frenchBox: {
-    marginTop: 60,
-  },
-});
 
 export default WordListScreen;
